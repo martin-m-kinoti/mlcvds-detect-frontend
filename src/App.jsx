@@ -2,7 +2,8 @@ import { useState } from "react";
 import "./App.css";
 
 function App() {
-  const [formData, setFormData] = useState({
+  // Form data
+  const initialFormData = {
     age: "",
     gender: "1",
     weight: "",
@@ -14,18 +15,49 @@ function App() {
     smoke: "0",
     alco: "0",
     active: "0",
-  });
+  };
 
+  
+  const [formData, setFormData] = useState(initialFormData);
+
+  // Prediction and probabilities
+  const [prediction, setPrediction] = useState("");
+  const [proba, setProba] = useState([]);
+
+  // handleChange function 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  // handleSubmit function
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form submitted:", formData);
-    // TODO: send data to backend
+    try {
+      const response = await fetch("https://cvds-detect-be145acb2b0f.herokuapp.com/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+    
+    if (!response.ok) throw new Error("Network response was not ok!");
+    
+    const result = await response.json();
+    setPrediction(result["Predicted class"]);
+    setProba(result["Probabilities"])
+
+    }
+    catch (error) {
+      console.error("Error: ", error);
+    }
   };
+
+  // handleReset button
+  const handleReset = () => {
+    setFormData(initialFormData);
+    setPrediction("");
+    setProba([]);
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-10 px-4">
@@ -238,9 +270,15 @@ function App() {
         <div className="mt-8 flex justify-center">
           <button
             type="submit"
-            className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow hover:bg-indigo-700 transition"
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full"
           >
             Predict
+          </button>
+          <button 
+            type="button"
+            onClick={handleReset}
+            className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400 w-full">
+              Reset
           </button>
         </div>
       </form>
@@ -248,12 +286,16 @@ function App() {
       {/* Prediction Output */}
       <div className="mt-10 bg-white shadow-md rounded-xl p-6 w-full max-w-2xl">
         <h3 className="text-xl font-semibold text-gray-800">Prediction</h3>
-        <p id="predicted-class" className="mt-2 text-gray-600"></p>
+        <p id="predicted-class" className="mt-2 text-gray-600">
+          {prediction || "-"}
+        </p>
         <hr className="my-4" />
         <h3 className="text-xl font-semibold text-gray-800">
           Prediction Statistics
         </h3>
-        <p id="proba" className="mt-2 text-gray-600"></p>
+        <p id="proba" className="mt-2 text-gray-600">
+          {proba.length > 0 ? proba.join(", ") : "—"}
+        </p>
       </div>
     </div>
   );
